@@ -8,8 +8,21 @@
 
 1. /video/process
 提交任务
+
+请求方式: POST
+
+参数|类型|必填|说明
+----|----|---|---|
+video_url|string|是|视频地址|
+
 2. /task/query
 任务查询
+
+请求方式: GET
+
+参数|类型|必填|说明
+----|----|---|---|
+task_id|string|是|任务ID|
 
 - Task Worker
 
