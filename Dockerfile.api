@@ -1,0 +1,43 @@
+# API image: lightweight, no ffmpeg, no model files
+FROM rust:1.82-bookworm as builder
+WORKDIR /app
+
+# Build deps for whisper/bindgen
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      clang libclang-dev pkg-config build-essential cmake && \
+    rm -rf /var/lib/apt/lists/*
+
+# Cache deps
+COPY Cargo.toml Cargo.lock /app/
+RUN mkdir -p src && echo "fn main() {}" > src/main.rs && \
+    cargo build --release && rm -rf src
+
+# Build
+COPY . /app
+RUN cargo build --release
+
+# Runtime
+FROM debian:bookworm-slim
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates tzdata libstdc++6 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Non-root user
+RUN useradd -m -u 10001 appuser
+
+COPY --from=builder /app/target/release/rs-whisper /app/rs-whisper
+
+ENV ROLE=api \
+    BIND_ADDR=0.0.0.0:8001 \
+    DATA_DIR=/app/data \
+    QUEUE_NAME=video_tasks \
+    REDIS_URL=redis://redis:6379 \
+    RUST_LOG=debug
+
+RUN mkdir -p /app/data && chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 8001
+CMD ["/app/rs-whisper"]

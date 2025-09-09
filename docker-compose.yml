@@ -1,0 +1,42 @@
+version: "3.9"
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      - ROLE=api
+      - BIND_ADDR=0.0.0.0:8001
+      - DATA_DIR=/app/data
+      - QUEUE_NAME=video_tasks
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+    ports:
+      - "8001:8001"
+    depends_on:
+      - redis
+      - worker
+    restart: always
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - ROLE=worker
+      - DATA_DIR=/app/data
+      - QUEUE_NAME=video_tasks
+      - REDIS_URL=redis://redis:6379
+      - WHISPER_MODEL=small
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+    depends_on:
+      - redis
+    restart: always
