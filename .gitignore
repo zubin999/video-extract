@@ -1,5 +1,4 @@
 data/
 models/
 target/
-*.md
 .vscode/
